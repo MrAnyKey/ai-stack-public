@@ -81,11 +81,6 @@ llama-swap/*.dll
 llama-swap/*.pdb
 llama-swap/logs/
 build*
-# Windows tray app local build/runtime artifacts
-windows-service-tray/.venv/
-windows-service-tray/build/
-windows-service-tray/dist/
-windows-service-tray/__pycache__/
 
 # Keep project configuration and source by default
 !/.claude/
