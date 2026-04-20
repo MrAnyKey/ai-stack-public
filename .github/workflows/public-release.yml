@@ -1,7 +1,13 @@
 name: public release
 
 on:
-  create:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.0.0)'
+        required: true
 
 permissions:
   contents: write
@@ -12,16 +18,14 @@ concurrency:
 
 jobs:
   release:
-    if: github.repository == 'MrAnyKey/ai-stack-public' && github.event_name == 'create' && github.event.ref_type == 'tag' && startsWith(github.ref, 'v')
+    if: github.repository == 'MrAnyKey/ai-stack-public'
     runs-on: ubuntu-latest
-    env:
-      RELEASE_TAG: ${{ github.ref }}
 
     steps:
       - name: Checkout release ref
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ inputs.tag || github.ref_name }}
           fetch-depth: 0
 
       - name: Setup Python
@@ -35,6 +39,7 @@ jobs:
       - name: Generate release notes and publish GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           set -euo pipefail
           semantic-release changelog --post-to-release-tag "$RELEASE_TAG"
