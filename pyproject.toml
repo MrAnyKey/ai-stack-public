@@ -1,6 +1,6 @@
 [project]
 name = "ai-stack"
-version = "1.0.1"
+version = "1.0.2"
 description = "Local AI inference stack with LiteLLM, llama-swap, GGUF models, and optional Podman services."
 readme = "README.md"
 requires-python = ">=3.10"
