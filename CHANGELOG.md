@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.4 (2026-04-20)
+
+### Bug Fixes
+
+- Refine condition for public release job trigger
+  ([`5c82901`](https://github.com/MrAnyKey/ai-stack/commit/5c82901a7ff5615a7097780761e2cfc558fb6339))
+
+
 ## v1.0.3 (2026-04-20)
 
 
