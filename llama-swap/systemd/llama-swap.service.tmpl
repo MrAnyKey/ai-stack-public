@@ -1,0 +1,23 @@
+[Unit]
+Description=llama-swap local router
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=@@ROOT@@/llama-swap
+Environment=HOME=%h
+Environment=LLAMA_SWAP_HOST=127.0.0.1
+Environment=LLAMA_SWAP_PORT=8081
+EnvironmentFile=-@@ROOT@@/.env
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env bash -lc 'exec llama-swap --config "@@ROOT@@/llama-swap/config.yaml" --listen "${LLAMA_SWAP_HOST:-127.0.0.1}:${LLAMA_SWAP_PORT:-8081}"'
+Restart=on-failure
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

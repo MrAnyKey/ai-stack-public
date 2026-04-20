@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "git-sync",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/sync_with_master.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "clear": true,
+        "panel": "dedicated",
+        "reveal": "silent",
+        "showReuseMessage": false
+      }
+    }
+  ]
+}

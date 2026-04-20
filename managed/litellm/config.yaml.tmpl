@@ -1,0 +1,165 @@
+# LiteLLM config managed by repo-local chezmoi.
+# Notes:
+# - LiteLLM runs as a user systemd service on port 4000.
+# - llama-swap runs as a user systemd service on 127.0.0.1:8081.
+# - Verify exact provider/model strings against your installed LiteLLM version before cutover.
+# - Model names are real model identifiers from llama-swap or cloud providers.
+{{ $llamaSwapApiBase := env "LLAMA_SWAP_API_BASE" | default "http://127.0.0.1:8081/v1" -}}
+{{ $searxngSearchApiBase := env "SEARXNG_SEARCH_API_BASE" | default "http://127.0.0.1:8080/search" -}}
+{{ $backgroundHealthChecks := env "LITELLM_BACKGROUND_HEALTH_CHECKS" | default "false" -}}
+{{ $healthCheckRouting := env "LITELLM_ENABLE_HEALTH_CHECK_ROUTING" | default "false" -}}
+{{ $healthCheckInterval := env "LITELLM_HEALTH_CHECK_INTERVAL" | default "300" -}}
+
+model_list:
+  # Local models - real names from llama-swap
+  - model_name: nomic-embed-text
+    litellm_params:
+      model: openai/nomic-embed-text
+      api_base: {{ $llamaSwapApiBase }}
+      api_key: "none"
+      encoding_format: "float"
+    model_info:
+      mode: embedding
+
+  - model_name: glm-4.7-flash
+    litellm_params:
+      model: openai/glm-4.7-flash
+      api_base: {{ $llamaSwapApiBase }}
+      api_key: "none"
+    model_info:
+      max_tokens: 32768
+      supports_web_search: True
+
+  - model_name: qwen3.6-35b-a3b
+    litellm_params:
+      model: openai/qwen3.6-35b-a3b
+      api_base: {{ $llamaSwapApiBase }}
+      api_key: "none"
+    model_info:
+      max_tokens: 32768
+      supports_web_search: True
+
+  - model_name: qwen3.6-35b-moe
+    litellm_params:
+      model: openai/qwen3.6-35b-moe
+      api_base: {{ $llamaSwapApiBase }}
+      api_key: "none"
+    model_info:
+      max_tokens: 32768
+      supports_web_search: True
+
+  - model_name: gemma-4-26b-moe
+    litellm_params:
+      model: openai/gemma-4-26b-moe
+      api_base: {{ $llamaSwapApiBase }}
+      api_key: "none"
+    model_info:
+      max_tokens: 32768
+      supports_web_search: True
+
+  - model_name: gpt-oss-20b
+    litellm_params:
+      model: openai/gpt-oss-20b
+      api_base: {{ $llamaSwapApiBase }}
+      api_key: "none"
+    model_info:
+      max_tokens: 32768
+      supports_web_search: True
+
+  - model_name: gemma-4-27b-unsloth
+    litellm_params:
+      model: openai/gemma-4-27b-unsloth
+      api_base: {{ $llamaSwapApiBase }}
+      api_key: "none"
+    model_info:
+      max_tokens: 32768
+      supports_web_search: True
+
+
+  - model_name: deepseek-r1-distill-32b
+    litellm_params:
+      model: openai/deepseek-r1-distill-32b
+      api_base: {{ $llamaSwapApiBase }}
+      api_key: "none"
+    model_info:
+      max_tokens: 32768
+      supports_web_search: True
+
+  # Cloud models - real names
+  - model_name: gemini-2.5-flash-lite
+    litellm_params:
+      model: gemini/gemini-2.5-flash-lite
+      api_key: os.environ/GEMINI_API_KEY
+
+  - model_name: gpt-5.4-mini
+    litellm_params:
+      model: openai/gpt-5.4-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: gpt-5.4
+    litellm_params:
+      model: openai/gpt-5.4
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: gemini-2.5-flash
+    litellm_params:
+      model: gemini/gemini-2.5-flash
+      api_key: os.environ/GEMINI_API_KEY
+
+  - model_name: gemini-2.5-pro
+    litellm_params:
+      model: gemini/gemini-2.5-pro
+      api_key: os.environ/GEMINI_API_KEY
+
+  - model_name: claude-sonnet-4-6
+    litellm_params:
+      model: anthropic/claude-sonnet-4-6
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+router_settings:
+  routing_strategy: simple-shuffle
+  num_retries: 2
+  cooldown_time: 120
+  allowed_fails_policy:
+    AuthenticationErrorAllowedFails: 0
+    TimeoutErrorAllowedFails: 2
+    RateLimitErrorAllowedFails: 4
+  fallbacks:
+    # - {"glm-4.7-flash": ["gemini-2.5-flash-lite"]}
+    # - {"qwen3.6-35b-a3b": ["gpt-5.4-mini", "glm-4.7-flash"]}
+    # - {"qwen3.6-35b-moe": ["gpt-5.4-mini", "glm-4.7-flash"]}
+    # - {"gemma-4-26b-moe": ["gemini-2.5-flash", "glm-4.7-flash"]}
+    # - {"gpt-oss-20b": ["gemini-2.5-flash", "glm-4.7-flash"]}
+    # - {"gemma-4-27b-unsloth": ["gemini-2.5-flash", "glm-4.7-flash"]}
+    # - {"deepseek-r1-distill-32b": ["qwen3.6-35b-a3b", "gpt-5.4"]}
+    # - {"gpt-5.4-mini": ["qwen3.6-35b-a3b", "claude-sonnet-4-6"]}
+    # - {"gpt-5.4": ["claude-sonnet-4-6", "gemini-2.5-pro"]}
+    # - {"claude-sonnet-4-6": ["gpt-5.4"]}
+    # - {"gpt-5.4": ["gemini-2.5-pro"]}
+    # - {"gemini-2.5-flash": ["gemini-2.5-pro"]}
+  context_window_fallbacks:
+    - {"gemini-2.5-flash-lite": ["gemini-2.5-flash"]}
+    - {"glm-4.7-flash": ["gemini-2.5-flash"]}
+    - {"qwen3.6-35b-a3b": ["gemini-2.5-flash", "gemini-2.5-pro"]}
+    - {"qwen3.6-35b-moe": ["gemini-2.5-flash", "glm-4.7-flash"]}
+    - {"gemma-4-26b-moe": ["gemini-2.5-flash", "glm-4.7-flash"]}
+    - {"gpt-oss-20b": ["gemini-2.5-flash", "glm-4.7-flash"]}
+    - {"gemma-4-27b-unsloth": ["gemini-2.5-flash", "glm-4.7-flash"]}
+    - {"gpt-5.4-mini": ["gemini-2.5-flash", "gemini-2.5-pro"]}
+    - {"claude-sonnet-4-6": ["gemini-2.5-pro"]}
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  background_health_checks: {{ $backgroundHealthChecks }}
+  enable_health_check_routing: {{ $healthCheckRouting }}
+  health_check_interval: {{ $healthCheckInterval }}
+  health_check_ignore_transient_errors: true
+
+litellm_settings:
+  drop_params: true
+
+search_tools:
+  - search_tool_name: searxng-search
+    litellm_params:
+      search_provider: searxng
+      api_base: {{ $searxngSearchApiBase }}

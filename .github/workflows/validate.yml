@@ -1,0 +1,83 @@
+name: validate
+
+on:
+  pull_request:
+  push:
+    branches: [master, dev]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate JSON
+        run: |
+          find . -name "*.json" -type f \
+            -not -path "./.git/*" \
+            -not -path "./vendor/*" \
+            -not -path "./litellm/.venv/*" \
+            -not -path "./llama-cpp/*" \
+            -not -path "./models/*" \
+            -not -path "./podman/data/*" \
+            -not -path "./podman/config/*" \
+            -print0 \
+            | xargs -0 -r -I{} sh -c 'jq empty "$1" && echo "ok: $1"' sh "{}"
+
+      - name: Validate YAML configs
+        run: |
+          python3 -m pip install --quiet pyyaml
+          find . \( -name "*.yaml" -o -name "*.yml" \) -type f \
+            -not -path "./.git/*" \
+            -not -path "./vendor/*" \
+            -not -path "./litellm/.venv/*" \
+            -not -path "./llama-cpp/*" \
+            -not -path "./models/*" \
+            -not -path "./podman/config/*" \
+            -not -path "./podman/quadlets/*" \
+            -not -name "*.tmpl" \
+            -print0 \
+            | xargs -0 -r -I{} python3 -c 'import pathlib, sys, yaml; yaml.safe_load(pathlib.Path(sys.argv[1]).read_text())' "{}"
+          echo "all YAML ok"
+
+      - name: Validate TOML
+        run: |
+          python3 - <<'EOF'
+          import glob
+          import sys
+          import tomllib
+
+          errors = []
+          for path in glob.glob("**/*.toml", recursive=True):
+              if (
+                  ".git/" in path
+                  or "vendor/" in path
+                  or "litellm/.venv/" in path
+                  or "llama-cpp/" in path
+                  or "models/" in path
+                  or "podman/config/" in path
+              ):
+                  continue
+              try:
+                  with open(path, "rb") as f:
+                      tomllib.load(f)
+                  print(f"ok: {path}")
+              except Exception as exc:
+                  errors.append(f"{path}: {exc}")
+
+          if errors:
+              print("\n".join(errors), file=sys.stderr)
+              sys.exit(1)
+          EOF
+
+      - name: Shellcheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          ignore_paths: vendor
+
+      - name: Validate Justfile parses
+        run: |
+          curl -sSfL https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+          just --list

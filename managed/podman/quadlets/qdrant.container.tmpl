@@ -1,0 +1,21 @@
+[Unit]
+Description=Qdrant vector database
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Container]
+Image={{ env "QDRANT_IMAGE" }}
+ContainerName={{ env "QDRANT_CONTAINER_NAME" }}
+Network={{ env "PODMAN_NETWORK_NAME" }}.network
+PublishPort={{ env "QDRANT_HTTP_PORT" }}:{{ env "QDRANT_HTTP_CONTAINER_PORT" }}
+PublishPort={{ env "QDRANT_GRPC_PORT" }}:{{ env "QDRANT_GRPC_CONTAINER_PORT" }}
+Volume={{ env "AI_ROOT" | default .chezmoi.destDir }}/podman/data/qdrant:/qdrant/storage
+
+[Service]
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

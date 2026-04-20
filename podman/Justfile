@@ -1,0 +1,164 @@
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+root := canonicalize(justfile_directory() + "/..")
+chezmoi_config := root + "/.config/chezmoi/chezmoi.example.toml"
+chezmoi_state := root + "/.config/chezmoi/chezmoistate.quadlets.boltdb"
+quadlet_dir := justfile_directory() + "/quadlets"
+quadlet_unit_dir := env_var_or_default("XDG_CONFIG_HOME", env_var("HOME") + "/.config") + "/containers/systemd"
+
+install:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    bash "{{ root }}/scripts/install_packages.sh" podman
+
+bootstrap: quadlet-start
+
+render-configs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [ -f "{{ root }}/.env" ]; then
+        set -a
+        source "{{ root }}/.env"
+        set +a
+    fi
+
+    if [ -f "{{ root }}/podman/.env" ]; then
+        set -a
+        source "{{ root }}/podman/.env"
+        set +a
+    fi
+
+    if [ -f "{{ root }}/podman/.env" ] && ! grep -q '^N8N_RUNNERS_AUTH_TOKEN=' "{{ root }}/podman/.env"; then
+        sed -i \
+            -e 's/^N8N_PYTHON_ENABLED=false$/N8N_PYTHON_ENABLED=true/' \
+            -e 's/^N8N_NATIVE_PYTHON_RUNNER=false$/N8N_NATIVE_PYTHON_RUNNER=true/' \
+            "{{ root }}/podman/.env"
+        set -a
+        source "{{ root }}/podman/.env"
+        set +a
+    fi
+
+    mkdir -p \
+        "{{ root }}/podman/quadlets" \
+        "{{ root }}/podman/config/searxng" \
+        "{{ root }}/podman/data/n8n" \
+        "{{ root }}/podman/data/qdrant" \
+        "{{ root }}/podman/data/searxng-cache"
+
+    if [ ! -w "{{ root }}/podman/config/searxng" ]; then
+        podman unshare chown -R 0:0 "{{ root }}/podman/config/searxng"
+    fi
+
+    chezmoi \
+        --config "{{ chezmoi_config }}" \
+        --source "{{ root }}" \
+        --destination "{{ root }}" \
+        --persistent-state "{{ chezmoi_state }}" \
+        --force \
+        apply \
+        "{{ root }}/podman/.env"
+
+    if [ -f "{{ root }}/podman/.env" ]; then
+        set -a
+        source "{{ root }}/podman/.env"
+        set +a
+    fi
+
+    chezmoi \
+        --config "{{ chezmoi_config }}" \
+        --source "{{ root }}" \
+        --destination "{{ root }}" \
+        --persistent-state "{{ chezmoi_state }}" \
+        apply \
+        "{{ root }}/podman/config/searxng/settings.yml" \
+        "{{ root }}/podman/config/searxng/limiter.toml" \
+        "{{ root }}/podman/quadlets/ai-stack.network" \
+        "{{ root }}/podman/quadlets/n8n.container" \
+        "{{ root }}/podman/quadlets/n8n-runners.container" \
+        "{{ root }}/podman/quadlets/qdrant.container" \
+        "{{ root }}/podman/quadlets/searxng.container"
+
+quadlet-install: install render-configs
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    mkdir -p "{{ quadlet_unit_dir }}"
+    rm -f \
+        "{{ quadlet_unit_dir }}/n8n-data.volume" \
+        "{{ quadlet_unit_dir }}/searxng-cache.volume"
+
+    install -m 0644 "{{ quadlet_dir }}/ai-stack.network" "{{ quadlet_unit_dir }}/ai-stack.network"
+    install -m 0644 "{{ quadlet_dir }}/n8n.container" "{{ quadlet_unit_dir }}/n8n.container"
+    install -m 0644 "{{ quadlet_dir }}/n8n-runners.container" "{{ quadlet_unit_dir }}/n8n-runners.container"
+    install -m 0644 "{{ quadlet_dir }}/qdrant.container" "{{ quadlet_unit_dir }}/qdrant.container"
+    install -m 0644 "{{ quadlet_dir }}/searxng.container" "{{ quadlet_unit_dir }}/searxng.container"
+
+    systemctl --user daemon-reload
+    echo "[ok] installed quadlets to {{ quadlet_unit_dir }}"
+
+quadlet-start: quadlet-install
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    systemctl --user reset-failed qdrant.service n8n.service n8n-runners.service searxng.service || true
+    systemctl --user restart qdrant.service n8n.service n8n-runners.service searxng.service
+    systemctl --user status --no-pager qdrant.service n8n.service n8n-runners.service searxng.service
+
+quadlet-stop:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    systemctl --user stop searxng.service n8n-runners.service n8n.service qdrant.service || true
+    echo "[ok] stopped quadlets"
+
+quadlet-status:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    systemctl --user status --no-pager qdrant.service n8n.service n8n-runners.service searxng.service
+
+quadlet-logs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    journalctl --user -u qdrant.service -u n8n.service -u n8n-runners.service -u searxng.service -f
+
+destroy:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if [ -f "{{ root }}/podman/.env" ]; then
+        set -a
+        source "{{ root }}/podman/.env"
+        set +a
+    fi
+
+    systemctl --user stop searxng.service n8n-runners.service n8n.service qdrant.service >/dev/null 2>&1 || true
+    systemctl --user reset-failed searxng.service n8n-runners.service n8n.service qdrant.service >/dev/null 2>&1 || true
+
+    containers=(
+        "${SEARXNG_CONTAINER_NAME:-}"
+        "${N8N_RUNNERS_CONTAINER_NAME:-}"
+        "${N8N_CONTAINER_NAME:-}"
+        "${QDRANT_CONTAINER_NAME:-}"
+    )
+    podman rm -f "${containers[@]}" >/dev/null 2>&1 || true
+
+    rm -f \
+        "{{ quadlet_unit_dir }}/ai-stack.network" \
+        "{{ quadlet_unit_dir }}/qdrant.container" \
+        "{{ quadlet_unit_dir }}/n8n.container" \
+        "{{ quadlet_unit_dir }}/n8n-runners.container" \
+        "{{ quadlet_unit_dir }}/searxng.container" \
+        "{{ quadlet_unit_dir }}/n8n-data.volume" \
+        "{{ quadlet_unit_dir }}/searxng-cache.volume"
+
+    systemctl --user daemon-reload
+
+    rm -rf \
+        "{{ root }}/podman/quadlets" \
+        "{{ root }}/podman/config"
+
+    echo "[ok] destroyed podman quadlets and generated config; preserved podman/data"

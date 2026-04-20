@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "redhat.vscode-yaml",
+    "tamasfe.even-better-toml",
+    "foxundermoon.shell-format",
+    "timonwong.shellcheck",
+    "skellock.just",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "eamodio.gitlens",
+    "davidanson.vscode-markdownlint"
+  ]
+}

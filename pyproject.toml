@@ -1,0 +1,53 @@
+[project]
+name = "ai-stack"
+version = "0.0.0"
+description = "Local AI inference stack with LiteLLM, llama-swap, GGUF models, and optional Podman services."
+readme = "README.md"
+requires-python = ">=3.10"
+
+[tool.semantic_release]
+allow_zero_version = false
+commit_message = "chore(release): v{version} [skip ci]"
+commit_parser = "conventional"
+tag_format = "v{version}"
+version_toml = ["pyproject.toml:project.version"]
+
+[tool.semantic_release.branches.master]
+match = "master"
+prerelease = false
+
+[tool.semantic_release.commit_parser_options]
+minor_tags = ["minor"]
+patch_tags = ["feat", "fix", "perf", "refactor"]
+other_allowed_tags = ["build", "chore", "ci", "docs", "style", "test"]
+allowed_tags = [
+  "minor",
+  "feat",
+  "fix",
+  "perf",
+  "refactor",
+  "build",
+  "chore",
+  "ci",
+  "docs",
+  "style",
+  "test",
+]
+
+[tool.semantic_release.changelog]
+exclude_commit_patterns = [
+  '''build(?:\([^)]*?\))?: .+''',
+  '''chore(?:\([^)]*?\))?: .+''',
+  '''ci(?:\([^)]*?\))?: .+''',
+  '''docs(?:\([^)]*?\))?: .+''',
+  '''style(?:\([^)]*?\))?: .+''',
+  '''test(?:\([^)]*?\))?: .+''',
+]
+
+[tool.semantic_release.changelog.default_templates]
+changelog_file = "CHANGELOG.md"
+output_format = "md"
+
+[tool.semantic_release.publish]
+dist_glob_patterns = []
+upload_to_vcs_release = true

@@ -1,0 +1,32 @@
+[Unit]
+Description=n8n automation
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Container]
+Image={{ env "N8N_IMAGE" }}
+ContainerName={{ env "N8N_CONTAINER_NAME" }}
+Network={{ env "PODMAN_NETWORK_NAME" }}.network
+PublishPort={{ env "N8N_PORT" }}:{{ env "N8N_CONTAINER_PORT" }}
+Volume={{ env "AI_ROOT" | default .chezmoi.destDir }}/podman/data/n8n:/home/node/.n8n:U
+Environment=N8N_BASIC_AUTH_ACTIVE=true
+Environment=N8N_BASIC_AUTH_USER={{ env "N8N_BASIC_AUTH_USER" }}
+Environment=N8N_BASIC_AUTH_PASSWORD={{ env "N8N_BASIC_AUTH_PASSWORD" }}
+Environment=N8N_HOST={{ env "N8N_HOST" }}
+Environment=N8N_PORT={{ env "N8N_PORT" }}
+Environment=WEBHOOK_URL={{ env "N8N_WEBHOOK_URL" }}
+Environment=N8N_RUNNERS_MODE={{ env "N8N_RUNNERS_MODE" }}
+Environment=N8N_RUNNERS_BROKER_LISTEN_ADDRESS={{ env "N8N_RUNNERS_BROKER_LISTEN_ADDRESS" }}
+Environment=N8N_RUNNERS_BROKER_PORT={{ env "N8N_RUNNERS_BROKER_PORT" }}
+Environment=N8N_RUNNERS_AUTH_TOKEN={{ env "N8N_RUNNERS_AUTH_TOKEN" }}
+Environment=N8N_PYTHON_ENABLED={{ env "N8N_PYTHON_ENABLED" }}
+Environment=N8N_NATIVE_PYTHON_RUNNER={{ env "N8N_NATIVE_PYTHON_RUNNER" }}
+
+[Service]
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

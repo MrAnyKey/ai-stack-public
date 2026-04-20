@@ -1,0 +1,136 @@
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+root := canonicalize(justfile_directory() + "/..")
+service_name := "llama-swap"
+service_template := justfile_directory() + "/systemd/llama-swap.service.tmpl"
+service_unit_dir := env_var_or_default("XDG_CONFIG_HOME", env_var("HOME") + "/.config") + "/systemd/user"
+service_unit_path := service_unit_dir + "/" + service_name + ".service"
+launchd_label := "com.anykey.ai-stack.llama-swap"
+launchd_template := justfile_directory() + "/launchd/" + launchd_label + ".plist.tmpl"
+launchd_agent_dir := env_var("HOME") + "/Library/LaunchAgents"
+launchd_plist_path := launchd_agent_dir + "/" + launchd_label + ".plist"
+
+install:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    bash "{{ root }}/scripts/install_packages.sh" llama-swap
+
+_check_bin:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    has() {
+        command -v "$1" >/dev/null 2>&1
+    }
+
+    check_required() {
+        local tool="$1"
+
+        has "$tool" || {
+            echo "[miss] $tool"
+            echo "[fix] just install"
+            exit 1
+        }
+
+        echo "[ok] $tool"
+    }
+
+    check_required "llama-swap"
+
+    if has "llama-server"; then
+        echo "[ok] llama-server"
+    elif [ -x "{{ root }}/llama-cpp/llama-server" ]; then
+        echo "[ok] llama-server ({{ root }}/llama-cpp/llama-server)"
+    else
+        echo "[warn] llama-server not found"
+    fi
+
+render-configs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    just -f "{{ root }}/Justfile" render-llama-swap-configs
+
+service-install:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    mkdir -p "{{ service_unit_dir }}"
+
+    sed \
+        -e "s|@@ROOT@@|{{ root }}|g" \
+        "{{ service_template }}" > "{{ service_unit_path }}"
+
+    systemctl --user daemon-reload
+    echo "[ok] installed {{ service_unit_path }}"
+
+service-start: install _check_bin render-configs service-install
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    systemctl --user reset-failed {{ service_name }} || true
+    systemctl --user start {{ service_name }}
+    systemctl --user status --no-pager {{ service_name }}
+
+service-stop:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    systemctl --user stop {{ service_name }} || true
+    echo "[ok] stopped {{ service_name }}"
+
+service-restart: service-stop service-start
+
+service-status:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    systemctl --user status --no-pager {{ service_name }}
+
+service-logs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    journalctl --user -u {{ service_name }} -f
+
+launchd-install: install _check_bin render-configs
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    mkdir -p "{{ launchd_agent_dir }}"
+    sed \
+        -e "s|@@ROOT@@|{{ root }}|g" \
+        -e "s|@@HOME@@|${HOME}|g" \
+        "{{ launchd_template }}" > "{{ launchd_plist_path }}"
+
+    launchctl bootout "gui/$(id -u)" "{{ launchd_plist_path }}" >/dev/null 2>&1 || true
+    launchctl bootstrap "gui/$(id -u)" "{{ launchd_plist_path }}"
+    launchctl enable "gui/$(id -u)/{{ launchd_label }}"
+    echo "[ok] installed {{ launchd_plist_path }}"
+
+launchd-start:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    launchctl kickstart -k "gui/$(id -u)/{{ launchd_label }}"
+    launchctl print "gui/$(id -u)/{{ launchd_label }}"
+
+launchd-stop:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    launchctl bootout "gui/$(id -u)" "{{ launchd_plist_path }}" >/dev/null 2>&1 || true
+    echo "[ok] stopped {{ launchd_label }}"
+
+launchd-status:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    launchctl print "gui/$(id -u)/{{ launchd_label }}"
+
+launchd-logs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    log stream --style compact --predicate 'eventMessage CONTAINS "ai-stack-llama-swap"'

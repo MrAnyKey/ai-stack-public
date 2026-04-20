@@ -1,0 +1,21 @@
+[Unit]
+Description=n8n task runners
+After=network-online.target n8n.service
+Wants=network-online.target
+Requires=n8n.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Container]
+Image={{ env "N8N_RUNNERS_IMAGE" }}
+ContainerName={{ env "N8N_RUNNERS_CONTAINER_NAME" }}
+Network={{ env "PODMAN_NETWORK_NAME" }}.network
+Environment=N8N_RUNNERS_TASK_BROKER_URI={{ env "N8N_RUNNERS_TASK_BROKER_URI" }}
+Environment=N8N_RUNNERS_AUTH_TOKEN={{ env "N8N_RUNNERS_AUTH_TOKEN" }}
+
+[Service]
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,12 @@
+[keepassxc]
+database = "/path/to/Passwords.kdbx"
+# Uncomment if your database requires a key file:
+# args = ["--no-password", "-k", "/path/to/AI_Stack.keyx"]
+# Uncomment to disable master password prompt (e.g. for key-file-only unlock):
+# prompt = false
+
+[data.ai_stack.keepassxc.entries]
+litellm = "LiteLLM"
+openai = "OpenAI"
+gemini = "Gemini"
+anthropic = "Anthropic"

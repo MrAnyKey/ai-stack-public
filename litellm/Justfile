@@ -1,0 +1,172 @@
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+root := canonicalize(justfile_directory() + "/..")
+service_name := "litellm"
+service_template := justfile_directory() + "/systemd/litellm.service.tmpl"
+service_unit_dir := env_var_or_default("XDG_CONFIG_HOME", env_var("HOME") + "/.config") + "/systemd/user"
+service_unit_path := service_unit_dir + "/" + service_name + ".service"
+launchd_label := "com.anykey.ai-stack.litellm"
+launchd_template := justfile_directory() + "/launchd/" + launchd_label + ".plist.tmpl"
+launchd_agent_dir := env_var("HOME") + "/Library/LaunchAgents"
+launchd_plist_path := launchd_agent_dir + "/" + launchd_label + ".plist"
+
+install:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    run_quiet() {
+        local log
+        log="$(mktemp /tmp/uv.XXXXXX.log)"
+        if ! "$@" >"$log" 2>&1; then
+            cat "$log"
+            rm -f "$log"
+            return 1
+        fi
+        rm -f "$log"
+    }
+
+    bash "{{ root }}/scripts/install_packages.sh" uv
+    rm -rf "{{ root }}/litellm/.venv"
+    run_quiet uv venv "{{ root }}/litellm/.venv"
+    run_quiet uv pip install --python "{{ root }}/litellm/.venv/bin/python" 'litellm[proxy]'
+    run_quiet uv pip install --python "{{ root }}/litellm/.venv/bin/python" 'prisma>=0.15.0'
+    run_quiet uv pip install --python "{{ root }}/litellm/.venv/bin/python" 'uvloop>=0.22.1'
+    schema="$("{{ root }}/litellm/.venv/bin/python" -c 'import pathlib, litellm; print(pathlib.Path(litellm.__file__).parent / "proxy" / "schema.prisma")')"
+    run_quiet env PATH="{{ root }}/litellm/.venv/bin:$PATH" "{{ root }}/litellm/.venv/bin/prisma" generate --schema "$schema"
+
+_check_bin:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    test -x "{{ root }}/litellm/.venv/bin/litellm" || {
+        echo "[miss] {{ root }}/litellm/.venv/bin/litellm"
+        echo "[fix] just install"
+        exit 1
+    }
+
+    echo "[ok] {{ root }}/litellm/.venv/bin/litellm"
+
+render-configs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    just -f "{{ root }}/Justfile" render-litellm-configs
+
+secrets-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    env_file="{{ root }}/litellm/.env"
+    required_keys=(
+        LITELLM_MASTER_KEY
+        OPENAI_API_KEY
+        GEMINI_API_KEY
+        ANTHROPIC_API_KEY
+    )
+
+    test -f "$env_file" || {
+        echo "[miss] $env_file"
+        echo "[fix] generate it with chezmoi from KeePassXC, or create it from .env.example"
+        exit 1
+    }
+
+    chmod 600 "$env_file"
+
+    for key in "${required_keys[@]}"; do
+        if grep -Eq "^${key}=.+" "$env_file"; then
+            echo "[ok] $key"
+        else
+            echo "[miss] $key in $env_file"
+            exit 1
+        fi
+    done
+
+service-install:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    mkdir -p "{{ service_unit_dir }}"
+    config_path="{{ root }}/litellm/config.yaml"
+
+    test -f "$config_path"
+
+    sed \
+        -e "s|@@ROOT@@|{{ root }}|g" \
+        -e "s|@@CONFIG_PATH@@|$config_path|g" \
+        "{{ service_template }}" > "{{ service_unit_path }}"
+
+    systemctl --user daemon-reload
+    echo "[ok] installed {{ service_unit_path }}"
+
+service-start: install _check_bin render-configs secrets-check service-install
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+    mkdir -p "$runtime_dir"
+
+    systemctl --user reset-failed {{ service_name }} || true
+    systemctl --user start {{ service_name }}
+    systemctl --user status --no-pager {{ service_name }}
+
+service-stop:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    systemctl --user stop {{ service_name }} || true
+    echo "[ok] stopped {{ service_name }}"
+
+service-restart: service-stop service-start
+
+service-status:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    systemctl --user status --no-pager {{ service_name }}
+
+service-logs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    journalctl --user -u {{ service_name }} -f
+
+launchd-install: install _check_bin render-configs secrets-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    mkdir -p "{{ launchd_agent_dir }}"
+    sed \
+        -e "s|@@ROOT@@|{{ root }}|g" \
+        -e "s|@@HOME@@|${HOME}|g" \
+        "{{ launchd_template }}" > "{{ launchd_plist_path }}"
+
+    launchctl bootout "gui/$(id -u)" "{{ launchd_plist_path }}" >/dev/null 2>&1 || true
+    launchctl bootstrap "gui/$(id -u)" "{{ launchd_plist_path }}"
+    launchctl enable "gui/$(id -u)/{{ launchd_label }}"
+    echo "[ok] installed {{ launchd_plist_path }}"
+
+launchd-start:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    launchctl kickstart -k "gui/$(id -u)/{{ launchd_label }}"
+    launchctl print "gui/$(id -u)/{{ launchd_label }}"
+
+launchd-stop:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    launchctl bootout "gui/$(id -u)" "{{ launchd_plist_path }}" >/dev/null 2>&1 || true
+    echo "[ok] stopped {{ launchd_label }}"
+
+launchd-status:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    launchctl print "gui/$(id -u)/{{ launchd_label }}"
+
+launchd-logs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    log stream --style compact --predicate 'eventMessage CONTAINS "ai-stack-litellm"'

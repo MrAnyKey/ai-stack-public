@@ -1,0 +1,46 @@
+name: public mirror
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [release]
+    branches: [master]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    if: github.repository == 'MrAnyKey/ai-stack' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Configure public mirror deploy key
+        env:
+          PUBLIC_REPO_DEPLOY_KEY: ${{ secrets.PUBLIC_REPO_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$PUBLIC_REPO_DEPLOY_KEY"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$PUBLIC_REPO_DEPLOY_KEY" > ~/.ssh/public_repo_deploy_key
+          chmod 600 ~/.ssh/public_repo_deploy_key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          git config --global core.sshCommand "ssh -i ~/.ssh/public_repo_deploy_key -o IdentitiesOnly=yes"
+
+      - name: Publish public mirror
+        env:
+          PUBLIC_REPOSITORY: git@github.com:MrAnyKey/ai-stack-public.git
+          PUBLIC_BRANCH: master
+          SOURCE_REF: master
+        run: scripts/publish_public_mirror.sh

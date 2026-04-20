@@ -1,0 +1,23 @@
+# SearXNG botdetection / limiter settings managed by repo-local chezmoi.
+
+[botdetection]
+ipv4_prefix = 32
+ipv6_prefix = 48
+trusted_proxies = [
+{{- range (env "SEARXNG_LIMITER_TRUSTED_PROXIES" | splitList ",") }}
+  "{{ . }}",
+{{- end }}
+]
+
+[botdetection.ip_limit]
+filter_link_local = false
+link_token = false
+
+[botdetection.ip_lists]
+block_ip = []
+pass_ip = [
+{{- range (env "SEARXNG_LIMITER_PASS_IPS" | splitList ",") }}
+  "{{ . }}",
+{{- end }}
+]
+pass_searxng_org = true

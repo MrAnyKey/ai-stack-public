@@ -1,0 +1,37 @@
+{
+  "editor.formatOnSave": true,
+  "editor.insertSpaces": true,
+  "editor.tabSize": 2,
+  "files.associations": {
+    "*.tmpl": "yaml",
+    "*.env.example": "dotenv",
+    ".env.example": "dotenv",
+    "Justfile": "just"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml"
+  },
+  "[shellscript]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  "[markdown]": {
+    "editor.wordWrap": "on"
+  },
+  "shellcheck.enable": true,
+  "shellcheck.run": "onSave",
+  "git.autofetch": true,
+  "git.rebaseWhenSync": false,
+  "python.defaultInterpreterPath": "${workspaceFolder}/litellm/.venv/bin/python",
+  "markdownlint.config": {
+    "MD013": false,
+    "MD033": false
+  },
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+      "text": "Use Conventional Commits. In this repository, feat, fix, perf, and refactor are patch releases. Use minor: only for broad repository-level changes. Use BREAKING CHANGE: in the commit body only for critical incompatible changes. Use chore, docs, ci, build, style, or test for no-release maintenance commits."
+    }
+  ]
+}

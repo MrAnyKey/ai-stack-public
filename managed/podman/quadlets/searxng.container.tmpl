@@ -1,0 +1,23 @@
+[Unit]
+Description=SearxNG metasearch
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Container]
+Image={{ env "SEARXNG_IMAGE" }}
+ContainerName={{ env "SEARXNG_CONTAINER_NAME" }}
+Network={{ env "PODMAN_NETWORK_NAME" }}.network
+PublishPort={{ env "SEARXNG_PORT" }}:{{ env "SEARXNG_CONTAINER_PORT" }}
+Volume={{ env "AI_ROOT" | default .chezmoi.destDir }}/podman/config/searxng:/etc/searxng:O
+Volume={{ env "AI_ROOT" | default .chezmoi.destDir }}/podman/data/searxng-cache:/var/cache/searxng:U
+Environment=SEARXNG_BASE_URL={{ env "SEARXNG_BASE_URL" }}
+Environment=SEARXNG_SECRET={{ env "SEARXNG_SECRET" }}
+
+[Service]
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,13 @@
+LITELLM_MASTER_KEY={{ (keepassxc .ai_stack.keepassxc.entries.litellm).Password }}
+OPENAI_API_KEY={{ (keepassxc .ai_stack.keepassxc.entries.openai).Password }}
+GEMINI_API_KEY={{ (keepassxc .ai_stack.keepassxc.entries.gemini).Password }}
+ANTHROPIC_API_KEY={{ (keepassxc .ai_stack.keepassxc.entries.anthropic).Password }}
+{{ $litellmEntry := .ai_stack.keepassxc.entries.litellm -}}
+{{ $dbName := keepassxcAttribute $litellmEntry "DB_NAME" -}}
+{{ $dbHost := keepassxcAttribute $litellmEntry "DB_HOST" -}}
+{{ $dbUser := keepassxcAttribute $litellmEntry "DB_USER" -}}
+{{ $dbPassword := keepassxcAttribute $litellmEntry "DB_PASSWORD" -}}
+{{ $dbPort := env "LITELLM_DB_PORT" | default "5432" -}}
+{{ if and $dbName $dbHost $dbUser $dbPassword -}}
+DATABASE_URL=postgresql://{{ $dbUser | urlquery }}:{{ $dbPassword | urlquery }}@{{ $dbHost }}:{{ $dbPort }}/{{ $dbName | urlquery }}
+{{ end -}}

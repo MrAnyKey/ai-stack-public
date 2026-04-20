@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.anykey.ai-stack.litellm</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>set -o pipefail; cd "@@ROOT@@/litellm"; set -a; [ -f "@@ROOT@@/.env" ] &amp;&amp; . "@@ROOT@@/.env"; set +a; "@@ROOT@@/litellm/.venv/bin/litellm" --config "@@ROOT@@/litellm/config.yaml" --host "${LITELLM_HOST:-127.0.0.1}" --port "${LITELLM_PORT:-4000}" 2&gt;&amp;1 | while IFS= read -r line; do /usr/bin/logger -t ai-stack-litellm -- "ai-stack-litellm: $line"; done</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>Crashed</key>
+    <true/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>WorkingDirectory</key>
+  <string>@@ROOT@@/litellm</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>@@HOME@@</string>
+    <key>PATH</key>
+    <string>@@ROOT@@/litellm/.venv/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>

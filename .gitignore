@@ -1,0 +1,106 @@
+# Workspace intent:
+# Keep configuration, docs, scripts, and local plugin/source files.
+# Ignore models, secrets, runtime data, caches, logs, and downloaded binaries.
+
+
+.codex
+# Secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+.config/chezmoi/chezmoi.toml
+.config/chezmoi/chezmoistate.boltdb
+.config/chezmoi/chezmoistate.*.boltdb
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+secrets/
+
+# Sensitive local configs with embedded creds or machine-local values
+.claude/settings.local.json
+litellm/config.yaml
+llama-swap/config.yaml
+
+# Logs and runtime noise
+*.log
+*.out
+*.err
+*.pid
+*.seed
+*.stackdump
+
+# Python caches and environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+venvs/
+
+# Node and package manager caches
+node_modules/
+.npm/
+.pnpm-store/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Large local assets and generated state
+Models/
+models/
+podman/data/
+podman/quadlets/
+podman/config/
+opencode/
+bkp/
+
+# SQLite, journals, and local databases
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-*
+*.journal
+
+# Downloaded or generated local inference binaries
+llama-swap/*.exe
+llama-swap/*.dll
+llama-swap/*.pdb
+llama-swap/logs/
+build*
+# Windows tray app local build/runtime artifacts
+windows-service-tray/.venv/
+windows-service-tray/build/
+windows-service-tray/dist/
+windows-service-tray/__pycache__/
+
+# Keep project configuration and source by default
+!/.claude/
+!/.config/
+!/.config/chezmoi/
+!/.config/chezmoi/chezmoi.example.toml
+!/.roo/
+!/.agents/
+!/managed/
+!/podman/
+!/podman/.env.example
+!/litellm/
+!/llama-swap/
+!/openwork/
+!/plugins/
+!/scripts/
+!/windows-service-tray/
+llama-cpp

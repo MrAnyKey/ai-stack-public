@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.anykey.ai-stack.llama-swap</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>set -o pipefail; cd "@@ROOT@@/llama-swap"; set -a; [ -f "@@ROOT@@/.env" ] &amp;&amp; . "@@ROOT@@/.env"; set +a; llama-swap --config "@@ROOT@@/llama-swap/config.yaml" --listen "${LLAMA_SWAP_HOST:-127.0.0.1}:${LLAMA_SWAP_PORT:-8081}" 2&gt;&amp;1 | while IFS= read -r line; do /usr/bin/logger -t ai-stack-llama-swap -- "ai-stack-llama-swap: $line"; done</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>Crashed</key>
+    <true/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>WorkingDirectory</key>
+  <string>@@ROOT@@/llama-swap</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>@@HOME@@</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>

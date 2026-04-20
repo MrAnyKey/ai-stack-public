@@ -1,0 +1,49 @@
+minimum_pre_commit_version: "3.5.0"
+exclude: |
+  (?x)^(
+    \.codex($|/)|
+    \.config/chezmoi/chezmoistate\.boltdb|
+    vendor/|
+    llama-cpp/|
+    [Mm]odels/|
+    docker/data/|
+    logs/|
+    litellm/\.env|
+    litellm/config\.yaml|
+    llama-swap/config\.yaml
+  )
+
+repos:
+  - repo: local
+    hooks:
+      - id: synced-with-master
+        name: synced with origin/master
+        entry: scripts/check_synced_with_master.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-yaml
+      - id: destroyed-symlinks
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+      - id: trailing-whitespace

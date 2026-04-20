@@ -1,0 +1,25 @@
+[Unit]
+Description=LiteLLM AI gateway
+After=network-online.target llama-swap.service
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=@@ROOT@@/litellm
+Environment=HOME=%h
+Environment=LITELLM_HOST=127.0.0.1
+Environment=LITELLM_PORT=4000
+EnvironmentFile=-@@ROOT@@/.env
+Environment=PATH=@@ROOT@@/litellm/.venv/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=@@ROOT@@/litellm/.env
+Environment=LITELLM_MODE=PRODUCTION
+ExecStart=/usr/bin/env bash -lc 'exec "@@ROOT@@/litellm/.venv/bin/litellm" --config "@@CONFIG_PATH@@" --host "${LITELLM_HOST:-127.0.0.1}" --port "${LITELLM_PORT:-4000}"'
+Restart=on-failure
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
