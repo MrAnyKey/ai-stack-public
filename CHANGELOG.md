@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.5 (2026-04-20)
+
+### Features
+
+- Update service configurations and improve environment variable defaults
+  ([`9f57741`](https://github.com/MrAnyKey/ai-stack/commit/9f577413740e02466404571989d199adc736bf3a))
+
+
 ## v1.0.4 (2026-04-20)
 
 ### Bug Fixes
