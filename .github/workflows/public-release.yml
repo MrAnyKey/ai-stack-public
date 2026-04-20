@@ -1,8 +1,7 @@
 name: public release
 
 on:
-  push:
-    tags: ['v*']
+  create:
   workflow_dispatch:
     inputs:
       tag:
