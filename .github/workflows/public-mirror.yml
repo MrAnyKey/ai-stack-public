@@ -42,41 +42,6 @@ jobs:
         env:
           PUBLIC_REPOSITORY: git@github.com:MrAnyKey/ai-stack-public.git
           PUBLIC_BRANCH: master
+          PUBLIC_TAGS: true
           SOURCE_REF: master
         run: scripts/publish_public_mirror.sh
-
-      - name: Detect mirrored release tag
-        id: mirrored_release
-        run: |
-          set -euo pipefail
-          release_tag="$(git tag --points-at HEAD | grep -E '^v' | head -n 1 || true)"
-          echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
-
-      - name: Trigger public validate
-        env:
-          PUBLIC_REPO_WORKFLOW_TOKEN: ${{ secrets.PUBLIC_REPO_WORKFLOW_TOKEN }}
-        run: |
-          set -euo pipefail
-          test -n "$PUBLIC_REPO_WORKFLOW_TOKEN"
-          curl -sSfL \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $PUBLIC_REPO_WORKFLOW_TOKEN" \
-            https://api.github.com/repos/MrAnyKey/ai-stack-public/actions/workflows/validate.yml/dispatches \
-            -d '{"ref":"master"}'
-
-      - name: Trigger public release
-        if: steps.mirrored_release.outputs.tag != ''
-        env:
-          PUBLIC_REPO_WORKFLOW_TOKEN: ${{ secrets.PUBLIC_REPO_WORKFLOW_TOKEN }}
-          RELEASE_TAG: ${{ steps.mirrored_release.outputs.tag }}
-        run: |
-          set -euo pipefail
-          test -n "$PUBLIC_REPO_WORKFLOW_TOKEN"
-          payload="$(printf '{"ref":"master","inputs":{"tag":"%s","target_sha":"%s"}}' "$RELEASE_TAG" "$GITHUB_SHA")"
-          curl -sSfL \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $PUBLIC_REPO_WORKFLOW_TOKEN" \
-            https://api.github.com/repos/MrAnyKey/ai-stack-public/actions/workflows/public-release.yml/dispatches \
-            -d "$payload"

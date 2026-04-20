@@ -4,6 +4,7 @@ set -euo pipefail
 SOURCE_REF="${SOURCE_REF:-master}"
 PUBLIC_REPOSITORY="${PUBLIC_REPOSITORY:-git@github.com:MrAnyKey/ai-stack-public.git}"
 PUBLIC_BRANCH="${PUBLIC_BRANCH:-master}"
+PUBLIC_TAGS="${PUBLIC_TAGS:-true}"
 SYNC_BEFORE_PUBLISH="${SYNC_BEFORE_PUBLISH:-true}"
 
 repo_root="$(git rev-parse --show-toplevel)"
@@ -19,3 +20,7 @@ else
 fi
 
 git -C "$repo_root" push --force public "$SOURCE_REF:$PUBLIC_BRANCH"
+
+if [[ "$PUBLIC_TAGS" == "true" ]]; then
+  git -C "$repo_root" push --force public 'refs/tags/*:refs/tags/*'
+fi

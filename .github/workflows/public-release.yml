@@ -1,16 +1,7 @@
 name: public release
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: Tag to publish in ai-stack-public
-        required: true
-        type: string
-      target_sha:
-        description: Commit SHA in ai-stack-public to tag and release
-        required: true
-        type: string
+  create:
 
 permissions:
   contents: write
@@ -21,23 +12,29 @@ concurrency:
 
 jobs:
   release:
-    if: github.repository == 'MrAnyKey/ai-stack-public' && github.event_name == 'workflow_dispatch'
+    if: github.repository == 'MrAnyKey/ai-stack-public' && github.event_name == 'create' && github.event.ref_type == 'tag' && startsWith(github.ref, 'v')
     runs-on: ubuntu-latest
     env:
-      RELEASE_TAG: ${{ inputs.tag }}
-      RELEASE_TARGET_SHA: ${{ inputs.target_sha }}
+      RELEASE_TAG: ${{ github.ref }}
 
     steps:
-      - name: Create or update GitHub release
+      - name: Checkout release ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install python-semantic-release
+        run: python3 -m pip install --quiet python-semantic-release==10.5.3
+
+      - name: Generate release notes and publish GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Release $RELEASE_TAG already exists"
-          else
-            gh release create "$RELEASE_TAG" \
-              --target "$RELEASE_TARGET_SHA" \
-              --title "$RELEASE_TAG" \
-              --generate-notes
-          fi
+          semantic-release changelog --post-to-release-tag "$RELEASE_TAG"
