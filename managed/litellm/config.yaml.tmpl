@@ -3,7 +3,6 @@
 # - LiteLLM runs as a user systemd service on port 4000.
 # - llama-swap runs as a user systemd service on 127.0.0.1:8081.
 # - Verify exact provider/model strings against your installed LiteLLM version before cutover.
-# - Model names are real model identifiers from llama-swap or cloud providers.
 {{ $llamaSwapApiBase := env "LLAMA_SWAP_API_BASE" | default "http://127.0.0.1:8081/v1" -}}
 {{ $searxngSearchApiBase := env "SEARXNG_SEARCH_API_BASE" | default "http://127.0.0.1:8080/search" -}}
 {{ $backgroundHealthChecks := env "LITELLM_BACKGROUND_HEALTH_CHECKS" | default "false" -}}
