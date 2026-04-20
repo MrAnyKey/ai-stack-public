@@ -42,5 +42,6 @@ jobs:
         env:
           PUBLIC_REPOSITORY: git@github.com:MrAnyKey/ai-stack-public.git
           PUBLIC_BRANCH: master
+          PUBLIC_TAGS: true
           SOURCE_REF: master
         run: scripts/publish_public_mirror.sh
