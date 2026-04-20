@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.2 (2026-04-20)
+
+### Features
+
+- Remove Windows tray app local build/runtime artifacts from .gitignore
+  ([`f205d0f`](https://github.com/MrAnyKey/ai-stack/commit/f205d0f72474191a16541ce6ff3353c123966bd0))
+
+
 ## v1.0.1 (2026-04-20)
 
 ### Features
