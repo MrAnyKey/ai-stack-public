@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.1 (2026-04-20)
+
+### Features
+
+- Remove outdated note about model names in config template
+  ([`325a4c4`](https://github.com/MrAnyKey/ai-stack/commit/325a4c4b6f28b16d314f967447180acd23f66245))
+
+
 ## v1.0.0 (2026-04-20)
 
 - Initial Release
