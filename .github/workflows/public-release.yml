@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   release:
-    if: github.repository == 'MrAnyKey/ai-stack-public'
+    if: contains(github.repository, 'ai-stack-public')
     runs-on: ubuntu-latest
 
     steps:
