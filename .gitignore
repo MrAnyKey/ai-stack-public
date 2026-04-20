@@ -99,3 +99,4 @@ build*
 !/scripts/
 !/windows-service-tray/
 llama-cpp
+reports

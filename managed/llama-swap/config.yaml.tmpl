@@ -1,6 +1,6 @@
 # llama-swap config — https://github.com/mostlygeek/llama-swap
 # llama-swap assigns per-model upstream ports dynamically via ${PORT}.
-{{ $llamaServerHost := env "LLAMA_SERVER_HOST" | default "127.0.0.1" -}}
+{{ $llamaServerHost := env "LLAMA_SERVER_HOST" | default "0.0.0.0" -}}
 {{ $llamaSwapModelTtl := env "LLAMA_SWAP_MODEL_TTL" | default "300" -}}
 {{ $libPathKey := "LD_LIBRARY_PATH" -}}
 {{ if eq .chezmoi.os "darwin" -}}
@@ -16,7 +16,7 @@ models:
       --ctx-size 2048
       --batch-size 2048
       --ubatch-size 2048
-      --cache-ram 0
+      --cache-ram 512
       --ctx-checkpoints 1
       --n-gpu-layers 99
       --host {{ $llamaServerHost }}
@@ -30,14 +30,21 @@ models:
     proxy: http://{{ $llamaServerHost }}:${PORT}
 
   "glm-4.7-flash":
+    # Sampling: temp=0.7 top-p=1.0 min-p=0.01 - recommended for tool calling
+    # Source: unsloth/GLM-4.7-Flash-GGUF HF discussions, Unsloth docs
+    # ctx 131072 - safe maximum for 4090 with Q4_K_M
     cmd: >-
       {{ .chezmoi.destDir }}/llama-cpp/llama-server
       -m {{ .chezmoi.destDir }}/models/glm-4.7-flash/zai-org_GLM-4.7-Flash-Q4_K_M.gguf
-      --ctx-size 196608
+      --ctx-size 131072
       --cache-type-k q4_0
       --cache-type-v q4_0
       --n-gpu-layers 99
       --flash-attn on
+      --jinja
+      --temp 0.7
+      --top-p 1.0
+      --min-p 0.01
       --parallel 1
       --timeout 600
       --host {{ $llamaServerHost }}
@@ -51,15 +58,22 @@ models:
     proxy: http://{{ $llamaServerHost }}:${PORT}
 
   "gemma-4-26b-moe":
+    # Sampling: temp=1.0 top-p=0.95 top-k=64 - Google official model card
+    # repeat-penalty=1.0 (disabled) - recommended, enable only if looping occurs
+    # ctx 65536 - safe for 4090; max 256K but requires more VRAM
     cmd: >-
       {{ .chezmoi.destDir }}/llama-cpp/llama-server
       -m {{ .chezmoi.destDir }}/models/gemma-4-26b-moe/google_gemma-4-26B-A4B-it-Q4_K_M.gguf
-      --ctx-size 196608
+      --ctx-size 65536
       --cache-type-k q4_0
       --cache-type-v q4_0
       --n-gpu-layers 99
       --flash-attn on
       --jinja
+      --temp 1.0
+      --top-p 0.95
+      --top-k 64
+      --repeat-penalty 1.0
       --parallel 1
       --timeout 600
       --host {{ $llamaServerHost }}
@@ -73,15 +87,26 @@ models:
     proxy: http://{{ $llamaServerHost }}:${PORT}
 
   "qwen3.6-35b-a3b":
+    # Sampling (non-thinking/tool-calling mode): temp=0.7 top-p=0.8 top-k=20
+    # Thinking mode: temp=1.0 top-p=0.95 top-k=20
+    # Source: Unsloth docs, Qwen official docs
+    # --reasoning-format deepseek - for parsing <think> blocks
+    # ctx 65536 - quality/VRAM tradeoff; model supports 256K
     cmd: >-
       {{ .chezmoi.destDir }}/llama-cpp/llama-server
       -m {{ .chezmoi.destDir }}/models/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf
-      --ctx-size 196608
+      --ctx-size 65536
       --cache-type-k q4_0
       --cache-type-v q4_0
       --no-kv-offload
       --n-gpu-layers 99
       --flash-attn on
+      --jinja
+      --reasoning-format deepseek
+      --temp 0.7
+      --top-p 0.8
+      --top-k 20
+      --min-p 0.0
       --parallel 1
       --timeout 600
       --host {{ $llamaServerHost }}
@@ -95,16 +120,22 @@ models:
     proxy: http://{{ $llamaServerHost }}:${PORT}
 
   "qwen3.6-35b-moe":
+    # Same config as a3b but MXFP4 quantization — different file, same parameters
     cmd: >-
       {{ .chezmoi.destDir }}/llama-cpp/llama-server
       -m {{ .chezmoi.destDir }}/models/qwen3.6-35b-moe/Qwen3.6-35B-A3B-MXFP4_MOE.gguf
-      --ctx-size 196608
+      --ctx-size 65536
       --cache-type-k q4_0
       --cache-type-v q4_0
       --no-kv-offload
       --n-gpu-layers 99
       --flash-attn on
       --jinja
+      --reasoning-format deepseek
+      --temp 0.7
+      --top-p 0.8
+      --top-k 20
+      --min-p 0.0
       --parallel 1
       --timeout 600
       --host {{ $llamaServerHost }}
@@ -118,6 +149,11 @@ models:
     proxy: http://{{ $llamaServerHost }}:${PORT}
 
   "gpt-oss-20b":
+    # Harmony format requires --jinja (built-in chat template in GGUF)
+    # --reasoning-format auto — supports low/medium/high via chat-template-kwargs
+    # Sampling: temp=1.0 top-p=1.0 top-k=0 min-p=0 — recommended by OpenAI/community
+    # repeat-penalty=1.05 — helps prevent reasoning loops
+    # Source: llama.cpp discussion #15396, unsloth docs
     cmd: >-
       {{ .chezmoi.destDir }}/llama-cpp/llama-server
       -m {{ .chezmoi.destDir }}/models/gpt-oss-20b/gpt-oss-20b-Q4_K_M.gguf
@@ -126,6 +162,13 @@ models:
       --cache-type-v q4_0
       --n-gpu-layers 99
       --flash-attn on
+      --jinja
+      --reasoning-format auto
+      --temp 1.0
+      --top-p 1.0
+      --top-k 0
+      --min-p 0.0
+      --repeat-penalty 1.05
       --parallel 1
       --timeout 600
       --host {{ $llamaServerHost }}
@@ -139,22 +182,23 @@ models:
     proxy: http://{{ $llamaServerHost }}:${PORT}
 
   "gemma-4-27b-unsloth":
+    # Unsloth UD quant — same parameters as Google original
+    # Sampling follows Google model card recommendations
     cmd: >-
       {{ .chezmoi.destDir }}/llama-cpp/llama-server
       -m {{ .chezmoi.destDir }}/models/gemma-4-27b-unsloth/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf
-      --ctx-size 196608
+      --ctx-size 65536
       --cache-type-k q4_0
       --cache-type-v q4_0
       --n-gpu-layers 99
       --flash-attn on
       --jinja
+      --temp 1.0
+      --top-p 0.95
+      --top-k 64
+      --repeat-penalty 1.0
       --parallel 1
       --timeout 600
-      --temp 1.0
-      --top-k 40
-      --top-p 0.95
-      --min-p 0.05
-      --repeat-penalty 1.1
       --host {{ $llamaServerHost }}
       --port ${PORT}
     env:
@@ -165,8 +209,10 @@ models:
     ttl: {{ $llamaSwapModelTtl }}
     proxy: http://{{ $llamaServerHost }}:${PORT}
 
-
   "deepseek-r1-distill-32b":
+    # Sampling: temp=0.6 top-p=0.95 — official DeepSeek recommendation (range 0.5-0.7)
+    # --reasoning-format deepseek — for <think> blocks
+    # ctx 32768 — official maximum generation length for R1 distill
     cmd: >-
       {{ .chezmoi.destDir }}/llama-cpp/llama-server
       -m {{ .chezmoi.destDir }}/models/deepseek-r1-distill-32b/DeepSeek-R1-Distill-Qwen-32B-Q4_K_M.gguf
@@ -176,6 +222,9 @@ models:
       --n-gpu-layers 99
       --flash-attn on
       --jinja
+      --reasoning-format deepseek
+      --temp 0.6
+      --top-p 0.95
       --parallel 1
       --timeout 600
       --host {{ $llamaServerHost }}

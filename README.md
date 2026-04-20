@@ -375,9 +375,9 @@ Commit format:
 ## llama.cpp Version
 
 <!-- LLAMA_CPP_VERSION_START -->
-- version: `b8850`
-- commit: `4eac5b450`
-- date: `2026-04-19 19:26:59`
+- version: `b8855-5-gfd6ae4ca1`
+- commit: `fd6ae4ca1`
+- date: `2026-04-20 19:25:39`
 <!-- LLAMA_CPP_VERSION_END -->
 
 ## Versioning Policy

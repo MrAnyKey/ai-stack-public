@@ -43,13 +43,14 @@ search:
 
 server:
   # Overwritten by ${SEARXNG_BASE_URL}.
-  base_url: {{ env "SEARXNG_BASE_URL" }}
+  base_url: { ? { env "SEARXNG_BASE_URL" } }
   # Overwritten by ${SEARXNG_SECRET}.
   secret_key: "ultrasecretkey"
   limiter: false
   public_instance: false
   image_proxy: true
   method: "GET"
+  bind_address: "0.0.0.0"
   default_http_headers:
     X-Content-Type-Options: nosniff
     X-Download-Options: noopen
