@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.6 (2026-04-21)
+
+### Bug Fixes
+
+- Correct syntax for base_url in server configuration
+  ([`cbbf14e`](https://github.com/MrAnyKey/ai-stack/commit/cbbf14e62b24c0ff5b0434bd63c2ee0735786af0))
+
+
 ## v1.0.5 (2026-04-20)
 
 ### Features
