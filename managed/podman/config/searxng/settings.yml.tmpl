@@ -43,7 +43,7 @@ search:
 
 server:
   # Overwritten by ${SEARXNG_BASE_URL}.
-  base_url: { ? { env "SEARXNG_BASE_URL" } }
+  base_url: "{{ env "SEARXNG_BASE_URL" }}"
   # Overwritten by ${SEARXNG_SECRET}.
   secret_key: "ultrasecretkey"
   limiter: false
