@@ -27,8 +27,8 @@ install:
 
     bash "{{ root }}/scripts/install_packages.sh" uv
     rm -rf "{{ root }}/litellm/.venv"
-    run_quiet uv venv "{{ root }}/litellm/.venv"
-    run_quiet uv pip install --python "{{ root }}/litellm/.venv/bin/python" 'litellm[proxy]'
+    run_quiet uv venv --python 3.13 "{{ root }}/litellm/.venv"
+    run_quiet uv pip install --python "{{ root }}/litellm/.venv/bin/python" 'litellm[proxy]==1.83.7'
     run_quiet uv pip install --python "{{ root }}/litellm/.venv/bin/python" 'prisma>=0.15.0'
     run_quiet uv pip install --python "{{ root }}/litellm/.venv/bin/python" 'uvloop>=0.22.1'
     schema="$("{{ root }}/litellm/.venv/bin/python" -c 'import pathlib, litellm; print(pathlib.Path(litellm.__file__).parent / "proxy" / "schema.prisma")')"
