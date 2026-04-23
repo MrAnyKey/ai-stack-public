@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.0.7 (2026-04-23)
+
+### Bug Fixes
+
+- Specify Python version and update litellm proxy version in install script
+  ([`d1efa8b`](https://github.com/MrAnyKey/ai-stack/commit/d1efa8b48c4bd1a7d76bac0923c9503cb9fae978))
+
+
 ## v1.0.6 (2026-04-21)
 
 ### Bug Fixes
